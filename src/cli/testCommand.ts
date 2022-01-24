@@ -1,45 +1,51 @@
-import program, { Command } from "commander";
-import runTests from "./runTests";
+import program, { Command } from 'commander';
+import { loadConfig } from '../config';
+import { omitArgs } from './omitArgs';
+import { runTests } from '../run/runTests';
+import { BrowserName } from '../types';
 
 export const buildTestCommand = (): program.Command => {
-  const command = new Command("test")
-    .description(
-      "🏃 Run QA Wolf tests, optionally specifying a list of test tag names"
-    )
-    .option(
-      "-t, --tags <tags>",
-      "comma separated list of tag names (example: Account,Checkout)"
-    )
-    .option(
-      "-e, --environment <environment>",
-      "environment name to use when running your tests (example: Staging)"
-    )
-    .option(
-      "-v, --variables <variables>",
-      "environment variables to pass to your tests"
-    )
-    .option("--no-wait", "do not wait for the tests finish running")
-    .option("-b, --branch <branch>", "git branch of tests to run")
-    .option("--trigger <id>", "deprecated: id of the trigger to run")
-    .action(
-      async ({
-        branch,
-        environment,
-        tags,
-        trigger: triggerId,
-        variables,
-        wait,
-      }) => {
-        await runTests({
-          branch,
-          environment,
-          tags,
-          triggerId,
-          variables,
-          wait,
+  const command = new Command('test')
+    .storeOptionsAsProperties(false)
+    .option('--all-browsers', 'run tests on chromium, firefox, and webkit')
+    .option('--chromium', 'run tests on chromium')
+    .option('--firefox', 'run tests on firefox')
+    .option('--headless', 'run tests headless')
+    .option('--webkit', 'run tests on webkit')
+    .description('✅ run tests')
+    .allowUnknownOption(true)
+    .action(async () => {
+      const opts = command.opts();
+
+      const browsers: BrowserName[] = [];
+      if (opts.allBrowsers || opts.chromium) browsers.push('chromium');
+      if (opts.allBrowsers || opts.firefox) browsers.push('firefox');
+      if (opts.allBrowsers || opts.webkit) browsers.push('webkit');
+      if (!browsers.length) browsers.push('chromium');
+
+      // omit qawolf arguments
+      const jestArgs = omitArgs(process.argv.slice(3), [
+        '--all-browsers',
+        '--chromium',
+        '--firefox',
+        '--headless',
+        '--rootDir', // should be passed through config
+        '--webkit',
+      ]);
+
+      const config = loadConfig();
+
+      try {
+        runTests({
+          args: jestArgs,
+          browsers,
+          config: config,
+          headless: opts.headless,
         });
+      } catch (e) {
+        process.exit(1);
       }
-    );
+    });
 
   return command;
 };

@@ -1,4 +1,4 @@
-import program, { Command } from "commander";
+import program, { Command } from 'commander';
 
 const wolf = String.raw`
                      .
@@ -15,8 +15,8 @@ const wolf = String.raw`
 `;
 
 export const buildHowlCommand = (): program.Command => {
-  const command = new Command("howl")
-    .description("🐺")
+  const command = new Command('howl')
+    .description('🐺')
     .action(() => console.log(wolf));
 
   return command;
